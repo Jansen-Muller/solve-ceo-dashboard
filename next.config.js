@@ -4,6 +4,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  output: 'standalone',
+  poweredByHeader: false,
 };
 
 module.exports = nextConfig;
