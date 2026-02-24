@@ -2,14 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Required: Skip type checking during build (types are checked in CI via tsc)
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Required: Skip ESLint during build
-  eslint: {
-    ignoreDuringBuilds: true,
+  experimental: {
+    optimizePackageImports: ['@supabase/supabase-js'],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
