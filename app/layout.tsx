@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'SOLVE CEO Dashboard',
-  description: 'A production-ready Next.js application with Supabase integration',
+  description: 'Factory Command Center – Industrial CEO Performance Dashboard',
 };
 
 export default function RootLayout({
@@ -12,9 +12,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head />
-      <body>{children}</body>
+    <html lang="en" className="dark">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-command-bg text-command-text antialiased">{children}</body>
     </html>
   );
 }

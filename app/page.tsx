@@ -1,219 +1,209 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-client';
-import Link from 'next/link';
-
-interface HealthCheckRecord {
-  id: string;
-  status: string;
-  created_at: string;
-}
+import {
+  CommandHeader,
+  MetricCard,
+  SectionHeader,
+  SeverityBadge,
+  ProgressBar,
+  formatZAR,
+  getStatus,
+} from '@/components/ui';
+import {
+  cashPosition,
+  overheadRecovery,
+  grossMargin,
+  netProfit,
+  debtors,
+  factoryEfficiency,
+  riskRadarItems,
+  executiveBrief,
+  MONTHLY_OVERHEAD,
+} from '@/lib/mock-data';
 
 export default function HomePage() {
-  const [healthStatus, setHealthStatus] = useState<string | null>(null);
-  const [healthRecords, setHealthRecords] = useState<HealthCheckRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch health_check records
-        const { data, error: fetchError } = await supabase
-          .from('health_check')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (fetchError) {
-          // If table doesn't exist, create it
-          if (fetchError.message.includes('relation "public.health_check" does not exist')) {
-            setError(
-              'Health check table not found. Please create it in your Supabase dashboard.'
-            );
-          } else {
-            setError(fetchError.message);
-          }
-          setHealthStatus('ERROR');
-        } else {
-          setHealthRecords(data || []);
-          setHealthStatus('OK');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        setHealthStatus('ERROR');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkHealth();
-  }, [supabase]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                SOLVE CEO Dashboard
-              </h1>
+    <div className="min-h-screen bg-command-bg">
+      <CommandHeader />
+
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
+        {/* Title Bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-lg font-bold tracking-wide text-command-text">
+              SOLVE CEO Dashboard
+            </h1>
+            <p className="text-xs text-command-text-muted mt-0.5">
+              Factory Command View &middot; January 2025 MTD
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-command-text-muted">
+              Last sync: 14:32 SAST
+            </span>
+            <span className="w-2 h-2 rounded-full bg-status-green status-dot-green" />
+          </div>
+        </div>
+
+        {/* 6 Command Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+          <MetricCard
+            title="Cash Position"
+            value={formatZAR(cashPosition.netPosition, true)}
+            subtitle={`${cashPosition.monthsOfOverhead} months overhead cover`}
+            status={getStatus(cashPosition.monthsOfOverhead, 3, 1)}
+            change={{ value: formatZAR(Math.abs(cashPosition.weeklyChange), true), direction: 'down' }}
+            details={[
+              { label: 'Cash at Bank', value: formatZAR(cashPosition.cashAtBank, true) },
+              { label: 'Overdraft', value: formatZAR(cashPosition.overdraft, true) },
+              { label: 'Monthly Overhead', value: formatZAR(MONTHLY_OVERHEAD, true) },
+            ]}
+          />
+          <MetricCard
+            title="Overhead Recovery"
+            value={`${overheadRecovery.percentAbsorbed}%`}
+            subtitle={`${formatZAR(overheadRecovery.remainingToAbsorb, true)} remaining to absorb`}
+            status={getStatus(overheadRecovery.percentAbsorbed, 100, 80)}
+            details={[
+              { label: 'GP MTD', value: formatZAR(overheadRecovery.grossProfitMTD, true) },
+              { label: 'Overhead Target', value: formatZAR(overheadRecovery.overheadTarget, true) },
+            ]}
+          />
+          <MetricCard
+            title="Gross Margin"
+            value={`${grossMargin.actual}%`}
+            subtitle={`Target: ${grossMargin.target}% (${grossMargin.variance > 0 ? '+' : ''}${grossMargin.variance}%)`}
+            status={getStatus(grossMargin.actual, grossMargin.target, grossMargin.target - 5)}
+            change={{ value: `${Math.abs(grossMargin.variance)}%`, direction: grossMargin.variance >= 0 ? 'up' : 'down' }}
+            details={[
+              { label: 'Revenue MTD', value: formatZAR(grossMargin.revenueMTD, true) },
+              { label: 'COGS MTD', value: formatZAR(grossMargin.costOfSalesMTD, true) },
+            ]}
+          />
+          <MetricCard
+            title="Net Profit"
+            value={`${netProfit.actual}%`}
+            subtitle={`Target: ${netProfit.target}% (${netProfit.variance > 0 ? '+' : ''}${netProfit.variance}%)`}
+            status={getStatus(netProfit.actual, netProfit.target, netProfit.target - 5)}
+            change={{ value: `${Math.abs(netProfit.variance)}%`, direction: netProfit.variance >= 0 ? 'up' : 'down' }}
+            details={[
+              { label: 'Net Profit MTD', value: formatZAR(netProfit.netProfitMTD, true) },
+            ]}
+          />
+          <MetricCard
+            title="Debtors"
+            value={formatZAR(debtors.totalAR, true)}
+            subtitle={`AR Days: ${debtors.arDays} (prev: ${debtors.previousArDays})`}
+            status={getStatus(debtors.arDays, 45, 60, true)}
+            change={{ value: `${debtors.arDays - debtors.previousArDays}d`, direction: debtors.arDays > debtors.previousArDays ? 'down' : 'up' }}
+            details={[
+              { label: '90+ Days', value: formatZAR(debtors.ninetyPlusDays, true) },
+              { label: 'AR:Cash Ratio', value: `${debtors.arCashRatio.toFixed(1)}x` },
+            ]}
+          />
+          <MetricCard
+            title="Factory Efficiency"
+            value={`${factoryEfficiency.averageEfficiency}%`}
+            subtitle={`Target: ${factoryEfficiency.target}% | ${factoryEfficiency.machineCount} machines`}
+            status={getStatus(factoryEfficiency.averageEfficiency, factoryEfficiency.target, factoryEfficiency.target - 10)}
+            details={[
+              { label: 'Best', value: `${factoryEfficiency.bestMachine.name} (${factoryEfficiency.bestMachine.efficiency}%)` },
+              { label: 'Worst', value: `${factoryEfficiency.worstMachine.name} (${factoryEfficiency.worstMachine.efficiency}%)` },
+            ]}
+          />
+        </div>
+
+        {/* Risk Radar + AI Brief */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Risk Radar */}
+          <div>
+            <SectionHeader title="CEO Risk Radar" subtitle="Operational Threat Monitor" />
+            <div className="space-y-2">
+              {riskRadarItems.map((item, i) => (
+                <div
+                  key={i}
+                  className="metric-card flex items-start gap-3"
+                >
+                  <SeverityBadge severity={item.severity} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-command-text">{item.issue}</span>
+                      <span className="text-[10px] text-command-text-muted">({item.area})</span>
+                    </div>
+                    <p className="text-[11px] text-command-text-muted">{item.action}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Login
-              </Link>
+          </div>
+
+          {/* AI Executive Brief */}
+          <div>
+            <SectionHeader title="AI Executive Brief" subtitle="Automated Analysis" />
+            <div className="space-y-3">
+              <div className="metric-card border-l-4 border-l-status-red">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-status-red mb-1.5">
+                  Financial Risk
+                </div>
+                <p className="text-xs text-command-text leading-relaxed">
+                  {executiveBrief.financialRisk}
+                </p>
+              </div>
+              <div className="metric-card border-l-4 border-l-status-amber">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-status-amber mb-1.5">
+                  Operational Issue
+                </div>
+                <p className="text-xs text-command-text leading-relaxed">
+                  {executiveBrief.operationalIssue}
+                </p>
+              </div>
+              <div className="metric-card border-l-4 border-l-status-green">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-status-green mb-1.5">
+                  Positive Signal
+                </div>
+                <p className="text-xs text-command-text leading-relaxed">
+                  {executiveBrief.positiveSignal}
+                </p>
+              </div>
+              <div className="metric-card">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-command-text-muted mb-2">
+                  Recommendations
+                </div>
+                <ol className="space-y-2">
+                  {executiveBrief.recommendations.map((rec, i) => (
+                    <li key={i} className="flex gap-2 text-xs text-command-text leading-relaxed">
+                      <span className="font-mono font-bold text-status-amber shrink-0">{i + 1}.</span>
+                      {rec}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
           </div>
         </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto py-12 sm:px-6 lg:px-8">
-        <div className="px-4 py-12 sm:px-0">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Welcome to SOLVE CEO Dashboard
-            </h2>
-            <p className="text-xl text-gray-600">
-              A production-ready Next.js application with Supabase integration
-            </p>
+        {/* Overhead Recovery Progress */}
+        <div className="mt-8 metric-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-command-text-muted">
+              Overhead Recovery Progress
+            </span>
+            <span className="text-xs font-mono text-command-text">
+              {overheadRecovery.percentAbsorbed}%
+            </span>
           </div>
-
-          {/* Database Connection Status */}
-          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-              Database Connection Status
-            </h3>
-
-            {loading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <span className="ml-4 text-gray-600">Checking database...</span>
-              </div>
-            )}
-
-            {!loading && (
-              <>
-                <div className="mb-6">
-                  <div className="flex items-center">
-                    <div
-                      className={`h-4 w-4 rounded-full mr-3 ${
-                        healthStatus === 'OK' ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    ></div>
-                    <span className="text-lg font-medium text-gray-900">
-                      Status:{' '}
-                      <span
-                        className={
-                          healthStatus === 'OK'
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }
-                      >
-                        {healthStatus}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="rounded-md bg-red-50 p-4 mb-6">
-                    <p className="text-sm font-medium text-red-800">{error}</p>
-                  </div>
-                )}
-
-                {healthStatus === 'OK' && healthRecords.length > 0 && (
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 mb-4">
-                      Recent Health Checks
-                    </h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              ID
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Created At
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {healthRecords.map((record) => (
-                            <tr key={record.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {record.id}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {record.status}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(record.created_at).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {healthStatus === 'OK' && healthRecords.length === 0 && (
-                  <p className="text-gray-600">
-                    Database connection successful, but no health check records
-                    found. Add some records to see them here.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Features Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">🔐</div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Email Authentication
-              </h4>
-              <p className="text-gray-600">
-                Secure email-based login powered by Supabase Auth
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">🛡️</div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Protected Routes
-              </h4>
-              <p className="text-gray-600">
-                Dashboard route protected with authentication middleware
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">📊</div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Database Ready
-              </h4>
-              <p className="text-gray-600">
-                Supabase Postgres integration with real-time capabilities
-              </p>
-            </div>
+          <ProgressBar
+            value={overheadRecovery.grossProfitMTD}
+            max={overheadRecovery.overheadTarget}
+            status={getStatus(overheadRecovery.percentAbsorbed, 100, 80)}
+          />
+          <div className="flex justify-between mt-1.5">
+            <span className="text-[10px] text-command-text-muted">
+              GP: {formatZAR(overheadRecovery.grossProfitMTD, true)}
+            </span>
+            <span className="text-[10px] text-command-text-muted">
+              Target: {formatZAR(overheadRecovery.overheadTarget, true)}
+            </span>
           </div>
         </div>
       </main>
